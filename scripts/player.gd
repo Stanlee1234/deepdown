@@ -37,12 +37,13 @@ const RUMBLE_STRONG      := 0.7     # strong motor intensity (0.0 – 1.0)
 const RUMBLE_WEAK        := 0.4     # weak motor intensity  (0.0 – 1.0)
 const RUMBLE_DURATION    := 0.3     # seconds
 
-# ── Unlockable Ability Flags and Developer Mode ────────────────────────────────────────
-var admin_mode : bool = false
-@export var can_double_jump  : bool = admin_mode
-@export var can_dash         : bool = admin_mode
-@export var can_wall_jump    : bool = admin_mode
-@export var can_ground_pound : bool = admin_mode
+# ── Unlockable Ability Flags and Developer Mode ─────────────────────
+## Toggle admin_mode in the inspector to unlock all abilities for testing.
+@export var admin_mode       : bool = false
+@export var can_double_jump  : bool = false
+@export var can_dash         : bool = false
+@export var can_wall_jump    : bool = false
+@export var can_ground_pound : bool = false
 
 # ── State ───────────────────────────────────────────────────────────
 var coyote_timer       : float = 0.0
@@ -53,6 +54,7 @@ var has_double_jumped  : bool  = false
 var has_air_dash       : bool  = true
 var is_dashing         : bool  = false
 var is_ground_pounding : bool  = false
+var is_jumping         : bool  = false
 var dash_direction     : Vector2 = Vector2.ZERO
 var facing_direction   : float = 1.0   # 1 = right, -1 = left
 
@@ -83,6 +85,13 @@ signal landed
 func _ready() -> void:
 	shake_rng.randomize()
 	_camera = _find_camera()
+
+	# Admin mode: unlock all abilities for testing
+	if admin_mode:
+		can_double_jump  = true
+		can_dash         = true
+		can_wall_jump    = true
+		can_ground_pound = true
 
 # ════════════════════════════════════════════════════════════════════
 #  PHYSICS PROCESS
@@ -160,6 +169,7 @@ func _handle_jump() -> void:
 		_do_jump(JUMP_VELOCITY)
 		coyote_timer = 0.0
 		jump_buffer_timer = 0.0
+		is_jumping = true
 		emit_signal("jumped")
 		return
 
@@ -168,6 +178,8 @@ func _handle_jump() -> void:
 			and Input.is_action_just_pressed("jump"):
 		_do_jump(JUMP_VELOCITY * 0.85)
 		has_double_jumped = true
+		is_jumping = true
+		_restart_animation("jump")
 		emit_signal("double_jumped")
 		return
 
@@ -194,6 +206,7 @@ func _handle_wall_slide(_delta: float) -> void:
 		facing_direction = sign(wall_normal.x)
 		wall_jump_lock = WALL_JUMP_LOCK_TIME
 		has_double_jumped = false
+		is_jumping = true
 		emit_signal("wall_jumped")
 
 # ── Dash ────────────────────────────────────────────────────────────
@@ -243,12 +256,13 @@ func _check_landing() -> void:
 		if is_ground_pounding:
 			_on_ground_pound_impact()
 			is_ground_pounding = false
+		is_jumping = false
 		emit_signal("landed")
 	_was_on_floor = is_on_floor()
 
-# ════════════════════════════════════════════════════════════════════
+# ═════════════════════════════���══════════════════════════════════════
 #  SCREEN SHAKE / VIBRATION SYSTEM
-# ════════════════════════════════════════════════════════════════��═══
+# ════════════════════════════════════════════════════════════════════
 
 ## Called when the ground-pound hits the floor.
 func _on_ground_pound_impact() -> void:
@@ -287,7 +301,7 @@ func _trigger_gamepad_rumble() -> void:
 	for pad_id in Input.get_connected_joypads():
 		Input.start_joy_vibration(pad_id, RUMBLE_WEAK, RUMBLE_STRONG, RUMBLE_DURATION)
 
-# ── Camera helper ───────────────────────────────────────────────────
+# ── Camera helper ─────────────────────��─────────────────────────────
 ## Finds the camera: first checks children, then the current viewport camera.
 func _find_camera() -> Camera2D:
 	# Prefer a Camera2D that's a direct child of the player
@@ -309,7 +323,7 @@ func _update_animation() -> void:
 		_play_if_not("ground_pound")
 	elif is_dashing:
 		_play_if_not("dash")
-	elif not is_on_floor():
+	elif is_jumping:
 		if is_on_wall_only() and can_wall_jump and velocity.y > 0.0:
 			_play_if_not("wall_slide")
 		else:
@@ -322,3 +336,10 @@ func _update_animation() -> void:
 func _play_if_not(anim_name: String) -> void:
 	if animated_sprite.animation != anim_name:
 		animated_sprite.play(anim_name)
+
+## Force-restarts an animation even if it's already playing.
+func _restart_animation(anim_name: String) -> void:
+	if animated_sprite == null:
+		return
+	animated_sprite.stop()
+	animated_sprite.play(anim_name)

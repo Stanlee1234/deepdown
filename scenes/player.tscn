@@ -286,6 +286,7 @@ size = Vector2(137, 274)
 
 [node name="Player" type="CharacterBody2D" unique_id=627658441]
 script = ExtResource("1_g2els")
+admin_mode = true
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=568015954]
 sprite_frames = SubResource("SpriteFrames_y8tjj")
