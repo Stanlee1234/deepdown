@@ -4,27 +4,28 @@ extends CharacterBody2D
 ## Tuned for 512×512 art assets; adjust multipliers to taste.
 const TILE_UNIT := 512.0
 
-const MOVE_SPEED       := TILE_UNIT * 1.5        # 768 px/s horizontal
-const JUMP_VELOCITY    := -TILE_UNIT * 2.8        # upward burst
-const FAST_FALL_SPEED  := TILE_UNIT * 4.0         # dive / fast-fall
-const GRAVITY          := TILE_UNIT * 5.5         # baseline gravity
-const MAX_FALL_SPEED   := TILE_UNIT * 5.0         # terminal velocity
-const WALL_SLIDE_SPEED := TILE_UNIT * 1.0         # slower fall on walls
+const MOVE_SPEED       := TILE_UNIT * 2.2        # 1126 px/s horizontal
+const JUMP_VELOCITY    := -TILE_UNIT * 3.2        # upward burst
+const FAST_FALL_SPEED  := TILE_UNIT * 5.5         # dive / fast-fall
+const GRAVITY          := TILE_UNIT * 7.5         # baseline gravity
+const MAX_FALL_SPEED   := TILE_UNIT * 6.5         # terminal velocity
+const WALL_SLIDE_SPEED := TILE_UNIT * 1.5         # slower fall on walls
 
 # Coyote time & jump buffering (seconds)
 const COYOTE_TIME      := 0.12
 const JUMP_BUFFER_TIME := 0.10
 
 # Wall-jump tuning
-const WALL_JUMP_VELOCITY   := Vector2(TILE_UNIT * 1.8, -TILE_UNIT * 2.5)
+const WALL_JUMP_VELOCITY   := Vector2(TILE_UNIT * 2.2, -TILE_UNIT * 3.0)
 const WALL_JUMP_LOCK_TIME  := 0.15   # seconds player can't steer after wall-jump
 
 # Dash (unlockable ability – set can_dash = true when acquired)
-const DASH_SPEED     := TILE_UNIT * 5.0
-const DASH_DURATION  := 0.18
+const DASH_SPEED     := TILE_UNIT * 6.5
+const DASH_DURATION  := 0.2
+const DASH_COOLDOWN  := 0.4           # seconds before dash is available again
 
 # Ground-pound / dive (thematic: going *beneath the surface*)
-const GROUND_POUND_SPEED := TILE_UNIT * 6.0
+const GROUND_POUND_SPEED := TILE_UNIT * 7.5
 
 # ── Screen Shake / Vibration Constants ──────────────────────────────
 const SHAKE_INTENSITY    := 24.0    # max pixel offset (scales with 512px assets)
@@ -45,18 +46,19 @@ const RUMBLE_DURATION    := 0.3     # seconds
 @export var can_wall_jump    : bool = false
 @export var can_ground_pound : bool = false
 
-# ── State ───────────────────────────────────────────────────────────
-var coyote_timer       : float = 0.0
-var jump_buffer_timer  : float = 0.0
-var wall_jump_lock     : float = 0.0
-var dash_timer         : float = 0.0
-var has_double_jumped  : bool  = false
-var has_air_dash       : bool  = true
-var is_dashing         : bool  = false
-var is_ground_pounding : bool  = false
-var is_jumping         : bool  = false
-var dash_direction     : Vector2 = Vector2.ZERO
-var facing_direction   : float = 1.0   # 1 = right, -1 = left
+# ── State ─────────���─────────────────────────────────────────────────
+var coyote_timer        : float = 0.0
+var jump_buffer_timer   : float = 0.0
+var wall_jump_lock      : float = 0.0
+var dash_timer          : float = 0.0
+var dash_cooldown_timer : float = 0.0
+var has_double_jumped   : bool  = false
+var has_air_dash        : bool  = true
+var is_dashing          : bool  = false
+var is_ground_pounding  : bool  = false
+var is_jumping          : bool  = false
+var dash_direction      : Vector2 = Vector2.ZERO
+var facing_direction    : float = 1.0   # 1 = right, -1 = left
 
 # Shake state
 var shake_timer        : float = 0.0
@@ -131,8 +133,9 @@ func _update_timers(delta: float) -> void:
 	if can_wall_jump and is_on_wall_only():
 		has_air_dash = true
 
-	jump_buffer_timer = max(jump_buffer_timer - delta, 0.0)
-	wall_jump_lock    = max(wall_jump_lock    - delta, 0.0)
+	jump_buffer_timer   = max(jump_buffer_timer   - delta, 0.0)
+	wall_jump_lock      = max(wall_jump_lock      - delta, 0.0)
+	dash_cooldown_timer = max(dash_cooldown_timer  - delta, 0.0)
 
 # ── Gravity ─────────────────────────────────────────────────────────
 func _apply_gravity(delta: float) -> void:
@@ -215,6 +218,8 @@ func _handle_dash_input() -> void:
 		return
 	if not has_air_dash:
 		return
+	if dash_cooldown_timer > 0.0:
+		return
 	if not Input.is_action_just_pressed("dash"):
 		return
 
@@ -223,6 +228,7 @@ func _handle_dash_input() -> void:
 	dash_timer = DASH_DURATION
 	is_dashing = true
 	has_air_dash = false
+	dash_cooldown_timer = DASH_COOLDOWN
 	emit_signal("dashed")
 
 func _process_dash(_delta: float) -> void:
@@ -260,9 +266,9 @@ func _check_landing() -> void:
 		emit_signal("landed")
 	_was_on_floor = is_on_floor()
 
-# ═════════════════════════════���══════════════════════════════════════
-#  SCREEN SHAKE / VIBRATION SYSTEM
 # ════════════════════════════════════════════════════════════════════
+#  SCREEN SHAKE / VIBRATION SYSTEM
+# ══════════════════════════════════════════════════════��═════════════
 
 ## Called when the ground-pound hits the floor.
 func _on_ground_pound_impact() -> void:
@@ -301,7 +307,7 @@ func _trigger_gamepad_rumble() -> void:
 	for pad_id in Input.get_connected_joypads():
 		Input.start_joy_vibration(pad_id, RUMBLE_WEAK, RUMBLE_STRONG, RUMBLE_DURATION)
 
-# ── Camera helper ─────────────────────��─────────────────────────────
+# ── Camera helper ───────────────────────────────────────────────────
 ## Finds the camera: first checks children, then the current viewport camera.
 func _find_camera() -> Camera2D:
 	# Prefer a Camera2D that's a direct child of the player
@@ -324,10 +330,7 @@ func _update_animation() -> void:
 	elif is_dashing:
 		_play_if_not("dash")
 	elif is_jumping:
-		if is_on_wall_only() and can_wall_jump and velocity.y > 0.0:
-			_play_if_not("wall_slide")
-		else:
-			_play_if_not("jump")
+		_play_if_not("jump")
 	elif abs(velocity.x) > 10.0:
 		_play_if_not("run")
 	else:
