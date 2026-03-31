@@ -8,8 +8,10 @@ func _ready() -> void:
 func _on_body_entered(body: Node) -> void:
 	if body == null or not (body is CharacterBody2D):
 		return
+	if not body.is_in_group("player"):
+		return
 
-	match String(ability_name):
+	match ability_name:
 		"double_jump":
 			body.set("can_double_jump", true)
 		"dash":

@@ -1,5 +1,8 @@
 extends CanvasLayer
 
+const LOCKED_COLOR := Color(0.35, 0.35, 0.35, 0.75)
+const UNLOCKED_COLOR := Color(1, 1, 1, 1)
+
 @export var player_path: NodePath
 
 @onready var _player: Node = get_node_or_null(player_path)
@@ -18,4 +21,4 @@ func _process(_delta: float) -> void:
 func _update_icon(node_name: String, unlocked: bool) -> void:
 	var icon := get_node_or_null("Panel/%s" % node_name)
 	if icon is CanvasItem:
-		(icon as CanvasItem).modulate = Color(1, 1, 1, 1) if unlocked else Color(0.35, 0.35, 0.35, 0.75)
+		(icon as CanvasItem).modulate = UNLOCKED_COLOR if unlocked else LOCKED_COLOR

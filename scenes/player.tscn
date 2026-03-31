@@ -284,7 +284,7 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_tk41t"]
 size = Vector2(137, 274)
 
-[node name="Player" type="CharacterBody2D" unique_id=627658441]
+[node name="Player" type="CharacterBody2D" unique_id=627658441 groups=["player"]]
 script = ExtResource("1_g2els")
 admin_mode = true
 

@@ -5,8 +5,6 @@ extends AnimatedSprite2D
 @export var animation_fps := 12.0
 
 func _ready() -> void:
-	randomize()
-
 	var dir := DirAccess.open(frames_folder)
 	if dir == null:
 		return
@@ -34,4 +32,5 @@ func _ready() -> void:
 
 	sprite_frames = generated
 	play(animation_name)
-	frame = randi() % files.size()
+	if files.size() > 0:
+		frame = randi() % files.size()
