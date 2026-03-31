@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://d0cttxpwfxof3"]
 
+[ext_resource type="Script" path="res://scripts/slime.gd" id="1_kj4s2"]
 [ext_resource type="Texture2D" uid="uid://3kj5c0laycxu" path="res://images/Slimes/SlimeGreen/SlimeBasic_00000.png" id="1_6220k"]
 [ext_resource type="Texture2D" uid="uid://ceo0b1i8o6toh" path="res://images/Slimes/SlimeGreen/SlimeBasic_00001.png" id="2_yuttx"]
 [ext_resource type="Texture2D" uid="uid://c27x1evvnoyar" path="res://images/Slimes/SlimeGreen/SlimeBasic_00002.png" id="3_k7t3r"]
@@ -254,9 +255,19 @@ animations = [{
 "speed": 29.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_62cfy"]
+size = Vector2(220, 130)
+
 [node name="Slime" type="CharacterBody2D" unique_id=542798691]
+script = ExtResource("1_kj4s2")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1215300913]
 sprite_frames = SubResource("SpriteFrames_srws1")
 animation = &"default2"
 frame_progress = 0.82204664
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_62cfy")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
