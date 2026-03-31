@@ -337,6 +337,8 @@ func _update_animation() -> void:
 		_play_if_not("idle")
 
 func _play_if_not(anim_name: String) -> void:
+	if not animated_sprite.sprite_frames.has_animation(anim_name):
+		return
 	if animated_sprite.animation != anim_name:
 		animated_sprite.play(anim_name)
 
